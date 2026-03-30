@@ -12,6 +12,8 @@ This repository contains a patched DDNet 16.1 source tree with fixes for buildin
 
 **Key change**: Added hash patch to client version string for full server compatibility while maintaining DDNet 16.1 source base.
 
+> **Note**: I prefer source code builds over precompiled ZIP files, so no binaries will be provided here.
+
 ## Features
 
 - DDNet 16.1 source base.
@@ -103,7 +105,6 @@ ninja -j$(nproc)
 
 - If the build fails because of missing headers or libraries, install the matching `-dev` or `-devel` package for your distribution.
 - Some systems may also need additional audio, window system, or graphics packages depending on the desktop environment.
-- For Void Linux, make sure `xbps-install -Syu` is run before installing dependencies.
 
 ## License
 
