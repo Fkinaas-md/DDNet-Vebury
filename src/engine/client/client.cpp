@@ -3988,15 +3988,18 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 			return 4;
 		}
 	}
-   /*
+
 	SHA256_CTX Sha256Ctxt;
 	sha256_init(&Sha256Ctxt);
 	CUuid Salt = DDNET_CHECKSUM_SALT;
-	sha256_update(&Sha256Ctxt, &Salt, sizeof(Salt));
-	sha256_update(&Sha256Ctxt, &Uuid, sizeof(Uuid));
-	sha256_update(&Sha256Ctxt, aStartBytes, sizeof(aStartBytes));
-	sha256_update(&Sha256Ctxt, aEndBytes, sizeof(aEndBytes));
-	sha256_update(&Sha256Ctxt, m_Checksum.m_aBytes + Start, ChecksumBytesEnd - Start);
+	// Важно: добавляем явное приведение типов (const unsigned char *), чтобы GCC 15 не ругался
+	sha256_update(&Sha256Ctxt, (const unsigned char *)&Salt, sizeof(Salt));
+	sha256_update(&Sha256Ctxt, (const unsigned char *)&Uuid, sizeof(Uuid));
+	sha256_update(&Sha256Ctxt, (const unsigned char *)aStartBytes, sizeof(aStartBytes));
+	sha256_update(&Sha256Ctxt, (const unsigned char *)aEndBytes, sizeof(aEndBytes));
+
+	// Хэшируем данные из буфера чексумм
+	sha256_update(&Sha256Ctxt, (const unsigned char *)(m_Checksum.m_aBytes + Start), ChecksumBytesEnd - Start);
 	if(End > (int)sizeof(m_Checksum.m_aBytes))
 	{
 		unsigned char aBuf[2048];
@@ -4007,12 +4010,11 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 		for(int i = FileStart; i < End; i += sizeof(aBuf))
 		{
 			int Read = io_read(m_OwnExecutable, aBuf, minimum((int)sizeof(aBuf), End - i));
-			sha256_update(&Sha256Ctxt, aBuf, Read);
+			// Снова приведение типов для безопасности
+			sha256_update(&Sha256Ctxt, (const unsigned char *)aBuf, Read);
 		}
 	}
 	SHA256_DIGEST Sha256 = sha256_finish(&Sha256Ctxt);
-	*/
-    SHA256_DIGEST Sha256 = SHA256_ZEROED;  // GCC15 OpenSSL FIX - returns zero checksum
 
 	CMsgPacker Msg(NETMSG_CHECKSUM_RESPONSE, true);
 	Msg.AddRaw(&Uuid, sizeof(Uuid));
