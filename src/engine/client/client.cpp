@@ -3948,37 +3948,35 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 	if(Start <= (int)sizeof(m_Checksum.m_aBytes))
 	{
 		mem_zero(&m_Checksum.m_Data.m_Config, sizeof(m_Checksum.m_Data.m_Config));
-#define CHECKSUM_RECORD(Flags) (((Flags)&CFGFLAG_CLIENT) == 0 || ((Flags)&CFGFLAG_INSENSITIVE) != 0)
-#define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Flags, Desc) \
-	if(CHECKSUM_RECORD(Flags)) \
-	{ \
-		m_Checksum.m_Data.m_Config.m_##Name = g_Config.m_##Name; \
-	}
-#define MACRO_CONFIG_COL(Name, ScriptName, Def, Flags, Desc) \
-	if(CHECKSUM_RECORD(Flags)) \
-	{ \
-		m_Checksum.m_Data.m_Config.m_##Name = g_Config.m_##Name; \
-	}
-#define MACRO_CONFIG_STR(Name, ScriptName, Len, Def, Flags, Desc) \
-	if(CHECKSUM_RECORD(Flags)) \
-	{ \
-		str_copy(m_Checksum.m_Data.m_Config.m_##Name, g_Config.m_##Name, sizeof(m_Checksum.m_Data.m_Config.m_##Name)); \
-	}
-#include <engine/shared/config_variables.h>
-#undef CHECKSUM_RECORD
-#undef MACRO_CONFIG_INT
-#undef MACRO_CONFIG_COL
-#undef MACRO_CONFIG_STR
+		#define CHECKSUM_RECORD(Flags) (((Flags)&CFGFLAG_CLIENT) == 0 || ((Flags)&CFGFLAG_INSENSITIVE) != 0)
+		#define MACRO_CONFIG_INT(Name, ScriptName, Def, Min, Max, Flags, Desc) \
+		if(CHECKSUM_RECORD(Flags)) \
+		{ \
+			m_Checksum.m_Data.m_Config.m_##Name = g_Config.m_##Name; \
+		}
+		#define MACRO_CONFIG_COL(Name, ScriptName, Def, Flags, Desc) \
+		if(CHECKSUM_RECORD(Flags)) \
+		{ \
+			m_Checksum.m_Data.m_Config.m_##Name = g_Config.m_##Name; \
+		}
+		#define MACRO_CONFIG_STR(Name, ScriptName, Len, Def, Flags, Desc) \
+		if(CHECKSUM_RECORD(Flags)) \
+		{ \
+			str_copy(m_Checksum.m_Data.m_Config.m_##Name, g_Config.m_##Name, sizeof(m_Checksum.m_Data.m_Config.m_##Name)); \
+		}
+		#include <engine/shared/config_variables.h>
+		#undef CHECKSUM_RECORD
+		#undef MACRO_CONFIG_INT
+		#undef MACRO_CONFIG_COL
+		#undef MACRO_CONFIG_STR
 	}
 	if(End > (int)sizeof(m_Checksum.m_aBytes))
 	{
 		if(m_OwnExecutableSize == 0)
 		{
 			m_OwnExecutable = io_current_exe();
-			// io_length returns -1 on error.
 			m_OwnExecutableSize = m_OwnExecutable ? io_length(m_OwnExecutable) : -1;
 		}
-		// Own executable not available.
 		if(m_OwnExecutableSize < 0)
 		{
 			return 3;
@@ -3992,14 +3990,18 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 	SHA256_CTX Sha256Ctxt;
 	sha256_init(&Sha256Ctxt);
 	CUuid Salt = DDNET_CHECKSUM_SALT;
-	// Важно: добавляем явное приведение типов (const unsigned char *), чтобы GCC 15 не ругался
+
 	sha256_update(&Sha256Ctxt, (const unsigned char *)&Salt, sizeof(Salt));
 	sha256_update(&Sha256Ctxt, (const unsigned char *)&Uuid, sizeof(Uuid));
 	sha256_update(&Sha256Ctxt, (const unsigned char *)aStartBytes, sizeof(aStartBytes));
 	sha256_update(&Sha256Ctxt, (const unsigned char *)aEndBytes, sizeof(aEndBytes));
 
-	// Хэшируем данные из буфера чексумм
-	sha256_update(&Sha256Ctxt, (const unsigned char *)(m_Checksum.m_aBytes + Start), ChecksumBytesEnd - Start);
+	// ИСПРАВЛЕНИЕ: Добавляем проверку, чтобы не было отрицательной длины
+	if(Start < ChecksumBytesEnd)
+	{
+		sha256_update(&Sha256Ctxt, (const unsigned char *)(m_Checksum.m_aBytes + Start), ChecksumBytesEnd - Start);
+	}
+
 	if(End > (int)sizeof(m_Checksum.m_aBytes))
 	{
 		unsigned char aBuf[2048];
@@ -4010,12 +4012,11 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 		for(int i = FileStart; i < End; i += sizeof(aBuf))
 		{
 			int Read = io_read(m_OwnExecutable, aBuf, minimum((int)sizeof(aBuf), End - i));
-			// Снова приведение типов для безопасности
 			sha256_update(&Sha256Ctxt, (const unsigned char *)aBuf, Read);
 		}
 	}
-	SHA256_DIGEST Sha256 = sha256_finish(&Sha256Ctxt);
 
+	SHA256_DIGEST Sha256 = sha256_finish(&Sha256Ctxt);
 	CMsgPacker Msg(NETMSG_CHECKSUM_RESPONSE, true);
 	Msg.AddRaw(&Uuid, sizeof(Uuid));
 	Msg.AddRaw(&Sha256, sizeof(Sha256));
