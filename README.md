@@ -89,6 +89,29 @@ sudo zypper install -y \
   SDL2-devel
 ```
 
+
+### Gentoo 
+
+```bash
+emerge --ask \
+    dev-util/cmake \
+    dev-util/ninja \
+    media-libs/libsdl2 \
+    media-libs/glew \
+    media-libs/freetype \
+    media-libs/libogg \
+    media-libs/opus \
+    media-libs/opusfile \
+    media-libs/wavpack \
+    dev-libs/openssl \
+    net-misc/curl \
+    dev-db/sqlite \
+    sys-libs/zlib \
+    x11-libs/libnotify \
+    media-libs/vulkan-loader \
+    dev-util/vulkan-headers \
+    dev-util/glslang
+```
 ## Clone repository + build
 
 ```bash
