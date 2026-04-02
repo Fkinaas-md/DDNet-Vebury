@@ -97,7 +97,7 @@ cd DDNet-16.1-Hash
 git submodule update --init --recursive
 mkdir -p build
 cd build
-cmake -Bbuild -GNinja -DVIDEORECORDER=OFF ..
+cmake -Bbuild -GNinja -DVIDEORECORDER=OFF 
 cmake --build build
 ```
 
