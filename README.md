@@ -1,4 +1,4 @@
-# DDNet 16.1 Hash Patch
+<h1 align="center">DDNet 16.1 Hash Patch</h1>
 
 <p align="center">
   <b>Patched DDNet 16.1 build for modern Linux distributions</b>
@@ -20,7 +20,7 @@ This repository contains a patched DDNet 16.1 source tree with fixes for buildin
 - Compatibility fixes for modern GCC/Clang versions.
 - Correct client hash for server acceptance.
 - Ready-to-build project layout.
-- Useful for Fedora, Void Linux, Arch, Debian, Ubuntu, and other modern distributions.
+- Useful for Fedora, Void, Arch, Debian, Ubuntu, Gentoo, and other modern distributions.
 
 ## Supported distributions
 
@@ -29,6 +29,7 @@ This repository contains a patched DDNet 16.1 source tree with fixes for buildin
 - Debian / Ubuntu
 - Void Linux
 - openSUSE
+- Gentoo
 - Other modern Linux distributions
 
 ## Dependencies
@@ -44,7 +45,7 @@ sudo dnf install -y \
   SDL2-devel
 ```
 
-### Arch Linux
+### Arch
 
 ```bash
 sudo pacman -S --needed \
@@ -66,7 +67,7 @@ sudo apt install -y \
   libsdl2-dev
 ```
 
-### Void Linux
+### Void
 
 ```bash
 sudo xbps-install -Syu
