@@ -8,6 +8,7 @@
 
 #include <cstdarg>
 #include <tuple>
+#include <stdlib.h>
 
 #include <base/hash_ctxt.h>
 #include <base/logger.h>
@@ -3925,6 +3926,9 @@ void CClient::InitChecksum()
 	}
 #endif
 
+static unsigned char *s_pExeCache = nullptr;
+static int s_ExeCacheSize = 0;
+
 int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 {
 	int Start = pUnpacker->GetInt();
@@ -3987,6 +3991,7 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 		}
 	}
 
+
 	SHA256_CTX Sha256Ctxt;
 	sha256_init(&Sha256Ctxt);
 	CUuid Salt = DDNET_CHECKSUM_SALT;
@@ -3996,23 +4001,29 @@ int CClient::HandleChecksum(int Conn, CUuid Uuid, CUnpacker *pUnpacker)
 	sha256_update(&Sha256Ctxt, (const unsigned char *)aStartBytes, sizeof(aStartBytes));
 	sha256_update(&Sha256Ctxt, (const unsigned char *)aEndBytes, sizeof(aEndBytes));
 
-	// ИСПРАВЛЕНИЕ: Добавляем проверку, чтобы не было отрицательной длины
+	// 1. Хэшируем то, что уже в памяти
 	if(Start < ChecksumBytesEnd)
 	{
 		sha256_update(&Sha256Ctxt, (const unsigned char *)(m_Checksum.m_aBytes + Start), ChecksumBytesEnd - Start);
 	}
 
+	// 2. Читаем остальное (ОПТИМИЗИРОВАНО)
 	if(End > (int)sizeof(m_Checksum.m_aBytes))
 	{
-		unsigned char aBuf[2048];
-		if(io_seek(m_OwnExecutable, FileStart - sizeof(m_Checksum.m_aBytes), IOSEEK_START))
+		int TotalToRead = End - FileStart;
+
+		// Если мы еще не читали файл в этом запуске - читаем
+		if(!s_pExeCache)
 		{
-			return 5;
+			s_pExeCache = (unsigned char *)malloc(m_OwnExecutableSize);
+			io_seek(m_OwnExecutable, 0, IOSEEK_START);
+			s_ExeCacheSize = io_read(m_OwnExecutable, s_pExeCache, m_OwnExecutableSize);
 		}
-		for(int i = FileStart; i < End; i += sizeof(aBuf))
+
+		// Вместо чтения с диска, берем данные из оперативной памяти (s_pExeCache)
+		if(s_pExeCache && (FileStart - (int)sizeof(m_Checksum.m_aBytes) + TotalToRead) <= s_ExeCacheSize)
 		{
-			int Read = io_read(m_OwnExecutable, aBuf, minimum((int)sizeof(aBuf), End - i));
-			sha256_update(&Sha256Ctxt, (const unsigned char *)aBuf, Read);
+			sha256_update(&Sha256Ctxt, s_pExeCache + (FileStart - (int)sizeof(m_Checksum.m_aBytes)), TotalToRead);
 		}
 	}
 
