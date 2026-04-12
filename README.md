@@ -47,9 +47,9 @@ spirv-tools sqlite-devel vulkan-devel wavpack-devel
 ### Arch
 
 ```bash
-sudo pacman -S --needed
-base-devel cmake curl ffmpeg freetype2 git glew glslang gmock libnotify libpng ninja opusfile
-python rust sdl2 spirv-tools sqlite vulkan-headers vulkan-icd-loader wavpack x264
+sudo pacman -S --needed base-devel cmake curl ffmpeg freetype2 git glew glslang gmock
+libnotify libpng ninja opusfile python rust sdl2 spirv-tools sqlite vulkan-headers
+vulkan-icd-loader wavpack x264
 ```
 
 ### Debian / Ubuntu
