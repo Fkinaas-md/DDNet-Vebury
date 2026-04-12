@@ -67,11 +67,12 @@ ninja-build python3 rustc spirv-tools
 ### Void
 
 ```bash
-sudo xbps-install -Syu
-sudo xbps-install -S base-devel cargo cmake ffmpeg6-devel freetype-devel git glew-devel
-glslang gtest-devel libcurl-devel libnotify-devel libogg-devel libpng-devel ninja
-openssl-devel opus-devel opusfile-devel sqlite-devel SPIRV-Tools-devel vulkan-loader
-wavpack-devel x264-devel SDL2-devel
+sudo xbps-install -S base-devel cargo cmake ffmpeg6-devel \
+freetype-devel git glew-devel glslang gtest-devel \
+libcurl-devel libnotify-devel libogg-devel libpng-devel \
+ninja openssl-devel opus-devel opusfile-devel sqlite-devel \
+SPIRV-Tools-devel vulkan-loader wavpack-devel x264-devel SDL2-devel
+
 ```
 
 ### Gentoo 
