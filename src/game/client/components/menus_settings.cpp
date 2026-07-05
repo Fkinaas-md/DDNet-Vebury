@@ -2722,14 +2722,14 @@ void CMenus::RenderSettingsVebury(CUIRect MainView)
 
 		const char *pName = m_pClient->m_aClients[aPlayerIDs[i]].m_aName;
 		CTeeRenderInfo TeeInfo = m_pClient->m_aClients[aPlayerIDs[i]].m_RenderInfo;
-		float TeeSize = minimum(Item.m_Rect.h, 40.0f);
+		float TeeSize = minimum(Item.m_Rect.h, 20.0f);
 		TeeInfo.m_Size = TeeSize * 2.0f;
 		vec2 OffsetToMid;
 		RenderTools()->GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeInfo, OffsetToMid);
 
 		CUIRect TeeRect, NameRect;
-		Item.m_Rect.VSplitLeft(50.0f, &TeeRect, &NameRect);
-		TeeRect.VMargin(8.0f, &TeeRect);
+		Item.m_Rect.VSplitLeft(30.0f, &TeeRect, &NameRect);
+		TeeRect.VMargin(4.0f, &TeeRect);
 
 		// Highlight selected players
 		if(m_aVeburySelected[aPlayerIDs[i]])
@@ -2798,11 +2798,20 @@ void CMenus::RenderSettingsVebury(CUIRect MainView)
 		BanMinutes = 999999;
 	if(UI()->ActiveItem() != &s_BanMinutesOffset)
 	{
-		if(m_aVeburyBanMinutes[0] == '\0' && BanMinutes <= 0)
-			BanMinutes = 0;
-		str_format(m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), "%d", BanMinutes);
+		if(m_aVeburyBanMinutes[0] == '\0')
+		{
+			m_VeburyBanMinutes = 0;
+		}
+		else
+		{
+			str_format(m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), "%d", BanMinutes);
+			m_VeburyBanMinutes = BanMinutes;
+		}
 	}
-	m_VeburyBanMinutes = BanMinutes;
+	else
+	{
+		m_VeburyBanMinutes = BanMinutes;
+	}
 
 	Details.HSplitTop(10.0f, 0, &Details);
 	Details.HSplitTop(24.0f, &Label, &Details);
