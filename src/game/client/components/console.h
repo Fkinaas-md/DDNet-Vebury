@@ -38,6 +38,9 @@ class CGameConsole : public CComponent
 		char *m_pHistoryEntry;
 
 		CLineInput m_Input;
+		bool m_HasSelection = false;
+		int m_SelectionStart = 0;
+		int m_SelectionEnd = 0;
 		int m_Type;
 		int m_CompletionEnumerationCount;
 		int m_BacklogCurPage;
@@ -108,8 +111,7 @@ class CGameConsole : public CComponent
 	static void PossibleCommandsRenderCallback(const char *pStr, void *pUser);
 	static void ConToggleLocalConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConToggleRemoteConsole(IConsole::IResult *pResult, void *pUserData);
-	static void ConClearLocalConsole(IConsole::IResult *pResult, void *pUserData);
-	static void ConClearRemoteConsole(IConsole::IResult *pResult, void *pUserData);
+	static void ConClear(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpLocalConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConDumpRemoteConsole(IConsole::IResult *pResult, void *pUserData);
 	static void ConConsolePageUp(IConsole::IResult *pResult, void *pUserData);

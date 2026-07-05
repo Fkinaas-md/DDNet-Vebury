@@ -12,6 +12,9 @@
 class CChat : public CComponent
 {
 	CLineInput m_Input;
+	bool m_HasSelection;
+	int m_SelectionStart;
+	int m_SelectionEnd;
 
 	static constexpr float CHAT_WIDTH = 200.0f;
 	static constexpr float CHAT_HEIGHT_FULL = 200.0f;

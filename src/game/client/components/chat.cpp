@@ -89,6 +89,9 @@ void CChat::Reset()
 	m_ReverseTAB = false;
 	m_Show = false;
 	m_InputUpdate = false;
+	m_HasSelection = false;
+	m_SelectionStart = 0;
+	m_SelectionEnd = 0;
 	m_ChatStringOffset = 0;
 	m_CompletionUsed = false;
 	m_CompletionChosen = -1;
@@ -175,6 +178,41 @@ bool CChat::OnInput(IInput::CEvent Event)
 {
 	if(m_Mode == MODE_NONE)
 		return false;
+
+	const bool IsCtrlPressed = Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL) || Input()->KeyIsPressed(KEY_LGUI) || Input()->KeyIsPressed(KEY_RGUI);
+
+	if(IsCtrlPressed && Input()->KeyPress(KEY_A))
+	{
+		m_SelectionStart = 0;
+		m_SelectionEnd = m_Input.GetLength();
+		m_HasSelection = true;
+		m_Input.SetCursorOffset(m_Input.GetLength());
+		m_InputUpdate = true;
+		return true;
+	}
+
+	if(m_HasSelection && Event.m_Flags & IInput::FLAG_TEXT)
+	{
+		int Begin = minimum(m_SelectionStart, m_SelectionEnd);
+		int End = maximum(m_SelectionStart, m_SelectionEnd);
+		m_Input.SetRange(Event.m_aText, Begin, End);
+		m_HasSelection = false;
+		m_InputUpdate = true;
+		return true;
+	}
+
+	if(m_HasSelection && Event.m_Flags & IInput::FLAG_PRESS && (Event.m_Key == KEY_BACKSPACE || Event.m_Key == KEY_DELETE))
+	{
+		int Begin = minimum(m_SelectionStart, m_SelectionEnd);
+		int End = maximum(m_SelectionStart, m_SelectionEnd);
+		m_Input.SetRange("", Begin, End);
+		m_HasSelection = false;
+		m_InputUpdate = true;
+		return true;
+	}
+
+	if(m_HasSelection && Event.m_Flags & IInput::FLAG_PRESS && !IsCtrlPressed)
+		m_HasSelection = false;
 
 	if(Input()->ModifierIsPressed() && Input()->KeyPress(KEY_V))
 	{
@@ -1260,6 +1298,34 @@ void CChat::OnRender()
 				}
 			}
 			m_InputUpdate = false;
+		}
+
+		float SelectionStartX = Cursor.m_X;
+		float SelectionWidth = 0.0f;
+		if(m_HasSelection)
+		{
+			int Begin = minimum(m_SelectionStart, m_SelectionEnd);
+			int End = maximum(m_SelectionStart, m_SelectionEnd);
+			int VisibleBegin = clamp(Begin - m_ChatStringOffset, 0, m_Input.GetLength(Editing));
+			int VisibleEnd = clamp(End - m_ChatStringOffset, 0, m_Input.GetLength(Editing));
+
+			if(VisibleBegin < VisibleEnd)
+			{
+				CTextCursor Temp = Cursor;
+				Temp.m_Flags = 0;
+				TextRender()->TextEx(&Temp, m_Input.GetString(Editing) + m_ChatStringOffset, VisibleBegin);
+				SelectionStartX = Temp.m_X;
+				TextRender()->TextEx(&Temp, m_Input.GetString(Editing) + m_ChatStringOffset + VisibleBegin, VisibleEnd - VisibleBegin);
+				SelectionWidth = Temp.m_X - SelectionStartX;
+			}
+
+			Graphics()->BlendNormal();
+			Graphics()->TextureClear();
+			Graphics()->QuadsBegin();
+			ColorRGBA UiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_UiColor, true));
+			Graphics()->SetColor(UiColor.r, UiColor.g, UiColor.b, 0.35f);
+			RenderTools()->DrawRoundRect(SelectionStartX, Cursor.m_Y - 1.0f, maximum(SelectionWidth, 1.0f), Cursor.m_FontSize + 2.0f, 2.0f);
+			Graphics()->QuadsEnd();
 		}
 
 		TextRender()->TextEx(&Cursor, m_Input.GetString(Editing) + m_ChatStringOffset, m_Input.GetCursorOffset(Editing) - m_ChatStringOffset);

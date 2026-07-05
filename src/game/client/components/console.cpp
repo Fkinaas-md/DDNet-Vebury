@@ -139,6 +139,15 @@ void CGameConsole::CInstance::ClearHistory()
 
 void CGameConsole::CInstance::ExecuteLine(const char *pLine)
 {
+	if(str_comp_nocase(pLine, "clear") == 0)
+	{
+		m_pGameConsole->CurrentConsole()->ClearBacklog();
+		m_pGameConsole->m_HasSelection = false;
+		m_pGameConsole->m_CurSelStart = 0;
+		m_pGameConsole->m_CurSelEnd = 0;
+		return;
+	}
+
 	if(m_Type == CGameConsole::CONSOLETYPE_LOCAL)
 		m_pGameConsole->m_pConsole->ExecuteLine(pLine);
 	else
@@ -234,6 +243,37 @@ void CGameConsole::CInstance::OnInput(IInput::CEvent Event)
 			m_Input.SetCursorOffset(FoundAt);
 		}
 	}
+	const bool IsCtrlPressed = m_pGameConsole->Input()->KeyIsPressed(KEY_LCTRL) || m_pGameConsole->Input()->KeyIsPressed(KEY_RCTRL) || m_pGameConsole->Input()->KeyIsPressed(KEY_LGUI) || m_pGameConsole->Input()->KeyIsPressed(KEY_RGUI);
+
+	if(IsCtrlPressed && m_pGameConsole->Input()->KeyPress(KEY_A))
+	{
+		m_SelectionStart = 0;
+		m_SelectionEnd = m_Input.GetLength();
+		m_HasSelection = true;
+		m_Input.SetCursorOffset(m_Input.GetLength());
+		Handled = true;
+	}
+	else if(m_HasSelection && Event.m_Flags & IInput::FLAG_TEXT)
+	{
+		int Begin = minimum(m_SelectionStart, m_SelectionEnd);
+		int End = maximum(m_SelectionStart, m_SelectionEnd);
+		m_Input.SetRange(Event.m_aText, Begin, End);
+		m_HasSelection = false;
+		Handled = true;
+	}
+	else if(m_HasSelection && Event.m_Flags & IInput::FLAG_PRESS && (Event.m_Key == KEY_BACKSPACE || Event.m_Key == KEY_DELETE))
+	{
+		int Begin = minimum(m_SelectionStart, m_SelectionEnd);
+		int End = maximum(m_SelectionStart, m_SelectionEnd);
+		m_Input.SetRange("", Begin, End);
+		m_HasSelection = false;
+		Handled = true;
+	}
+	else if(m_HasSelection && Event.m_Flags & IInput::FLAG_PRESS && !IsCtrlPressed)
+	{
+		m_HasSelection = false;
+	}
+
 	if(m_pGameConsole->Input()->ModifierIsPressed() && m_pGameConsole->Input()->KeyPress(KEY_V))
 	{
 		const char *Text = m_pGameConsole->Input()->GetClipboardText();
@@ -692,6 +732,33 @@ void CGameConsole::OnRender()
 		// render console input (wrap line)
 		TextRender()->SetCursor(&Cursor, x, y, FontSize, 0);
 		Cursor.m_LineWidth = Screen.w - 10.0f - x;
+		float SelectionStartX = Cursor.m_X;
+		float SelectionWidth = 0.0f;
+		if(pConsole->m_HasSelection)
+		{
+			int Begin = minimum(pConsole->m_SelectionStart, pConsole->m_SelectionEnd);
+			int End = maximum(pConsole->m_SelectionStart, pConsole->m_SelectionEnd);
+			int VisibleBegin = clamp(Begin, 0, pConsole->m_Input.GetLength(Editing));
+			int VisibleEnd = clamp(End, 0, pConsole->m_Input.GetLength(Editing));
+
+			if(VisibleBegin < VisibleEnd)
+			{
+				CTextCursor Temp = Cursor;
+				Temp.m_Flags = 0;
+				TextRender()->TextEx(&Temp, aInputString, VisibleBegin);
+				SelectionStartX = Temp.m_X;
+				TextRender()->TextEx(&Temp, aInputString + VisibleBegin, VisibleEnd - VisibleBegin);
+				SelectionWidth = Temp.m_X - SelectionStartX;
+			}
+
+			Graphics()->BlendNormal();
+			Graphics()->TextureClear();
+			Graphics()->QuadsBegin();
+			ColorRGBA SelectionColor = m_ConsoleType == CONSOLETYPE_REMOTE ? ColorRGBA(0.58f, 0.25f, 0.25f, 0.28f) : ColorRGBA(0.32f, 0.32f, 0.32f, 0.28f);
+			Graphics()->SetColor(SelectionColor);
+			RenderTools()->DrawRoundRect(SelectionStartX, Cursor.m_Y - 1.0f, maximum(SelectionWidth, 1.0f), Cursor.m_FontSize + 2.0f, 2.0f);
+			Graphics()->QuadsEnd();
+		}
 		TextRender()->TextEx(&Cursor, aInputString, pConsole->m_Input.GetCursorOffset(Editing));
 		TextRender()->TextEx(&Cursor, aInputString + pConsole->m_Input.GetCursorOffset(Editing), -1);
 		int Lines = Cursor.m_LineCount;
@@ -964,14 +1031,14 @@ void CGameConsole::ConToggleRemoteConsole(IConsole::IResult *pResult, void *pUse
 	((CGameConsole *)pUserData)->Toggle(CONSOLETYPE_REMOTE);
 }
 
-void CGameConsole::ConClearLocalConsole(IConsole::IResult *pResult, void *pUserData)
+void CGameConsole::ConClear(IConsole::IResult *pResult, void *pUserData)
 {
-	((CGameConsole *)pUserData)->m_LocalConsole.ClearBacklog();
-}
-
-void CGameConsole::ConClearRemoteConsole(IConsole::IResult *pResult, void *pUserData)
-{
-	((CGameConsole *)pUserData)->m_RemoteConsole.ClearBacklog();
+	(void)pResult;
+	CGameConsole *pSelf = (CGameConsole *)pUserData;
+	pSelf->CurrentConsole()->ClearBacklog();
+	pSelf->m_HasSelection = false;
+	pSelf->m_CurSelStart = 0;
+	pSelf->m_CurSelEnd = 0;
 }
 
 void CGameConsole::ConDumpLocalConsole(IConsole::IResult *pResult, void *pUserData)
@@ -1025,8 +1092,7 @@ void CGameConsole::OnConsoleInit()
 
 	Console()->Register("toggle_local_console", "", CFGFLAG_CLIENT, ConToggleLocalConsole, this, "Toggle local console");
 	Console()->Register("toggle_remote_console", "", CFGFLAG_CLIENT, ConToggleRemoteConsole, this, "Toggle remote console");
-	Console()->Register("clear_local_console", "", CFGFLAG_CLIENT, ConClearLocalConsole, this, "Clear local console");
-	Console()->Register("clear_remote_console", "", CFGFLAG_CLIENT, ConClearRemoteConsole, this, "Clear remote console");
+	Console()->Register("clear", "", CFGFLAG_CLIENT | CFGFLAG_SERVER, ConClear, this, "Clear current console");
 	Console()->Register("dump_local_console", "", CFGFLAG_CLIENT, ConDumpLocalConsole, this, "Dump local console");
 	Console()->Register("dump_remote_console", "", CFGFLAG_CLIENT, ConDumpRemoteConsole, this, "Dump remote console");
 
