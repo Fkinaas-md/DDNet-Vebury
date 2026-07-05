@@ -56,6 +56,15 @@ void CScoreboard::OnMessage(int MsgType, void *pRawMsg)
 void CScoreboard::OnConsoleInit()
 {
 	Console()->Register("+scoreboard", "", CFGFLAG_CLIENT, ConKeyScoreboard, this, "Show scoreboard");
+	Console()->Register("toggle_scoreboard_cursor", "", CFGFLAG_CLIENT, ConToggleScoreboardCursor, this, "Toggle scoreboard cursor");
+}
+
+void CScoreboard::ConToggleScoreboardCursor(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	CScoreboard *pSelf = (CScoreboard *)pUserData;
+	(void)pSelf;
+	g_Config.m_ClScoreboardCursor ^= 1;
 }
 
 void CScoreboard::RenderGoals(float x, float y, float w)
