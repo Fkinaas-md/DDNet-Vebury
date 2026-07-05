@@ -87,6 +87,12 @@ CMenus::CMenus()
 
 	str_copy(m_aCurrentDemoFolder, "demos", sizeof(m_aCurrentDemoFolder));
 	m_aCallvoteReason[0] = 0;
+	mem_zero(m_aVeburySelected, sizeof(m_aVeburySelected));
+	m_VeburyBanMinutes = 5;
+	str_copy(m_aVeburyBanMinutes, "5", sizeof(m_aVeburyBanMinutes));
+	m_aVeburyReason[0] = 0;
+	m_aVeburyStatus[0] = 0;
+	m_VeburyScrollValue = 0.0f;
 
 	m_FriendlistSelectedIndex = -1;
 	m_DoubleClickIndex = -1;

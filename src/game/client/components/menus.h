@@ -348,6 +348,14 @@ protected:
 	char m_aFilterString[25];
 	bool m_ControlPageOpening;
 
+	// Vebury player selection
+	bool m_aVeburySelected[MAX_CLIENTS];
+	int m_VeburyBanMinutes;
+	char m_aVeburyBanMinutes[16];
+	char m_aVeburyReason[128];
+	char m_aVeburyStatus[256];
+	float m_VeburyScrollValue;
+
 	// demo
 	enum
 	{
@@ -578,6 +586,7 @@ public:
 		SETTINGS_GRAPHICS,
 		SETTINGS_SOUND,
 		SETTINGS_DDNET,
+		SETTINGS_VEBURY,
 		SETTINGS_ASSETS,
 
 		SETTINGS_LENGTH,
@@ -694,6 +703,7 @@ private:
 
 	// found in menus_settings.cpp
 	void RenderSettingsDDNet(CUIRect MainView);
+	void RenderSettingsVebury(CUIRect MainView);
 	void RenderSettingsHUD(CUIRect MainView);
 	ColorHSLA RenderHSLColorPicker(const CUIRect *pRect, unsigned int *pColor, bool Alpha);
 	ColorHSLA RenderHSLScrollbars(CUIRect *pRect, unsigned int *pColor, bool Alpha = false, bool ClampedLight = false);

@@ -75,6 +75,7 @@ void CMenuBackground::ResetPositions()
 	m_Positions[POS_SETTINGS_SOUND] = vec2(1000.0f, 1000.0f);
 	m_Positions[POS_SETTINGS_DDNET] = vec2(1200.0f, 200.0f);
 	m_Positions[POS_SETTINGS_ASSETS] = vec2(500.0f, 500.0f);
+	m_Positions[POS_SETTINGS_RESERVED0] = vec2(1050.0f, 900.0f);
 	for(int i = 0; i < POS_BROWSER_CUSTOM_NUM; ++i)
 		m_Positions[POS_BROWSER_CUSTOM0 + i] = vec2(500.0f + (75.0f * (float)i), 650.0f - (75.0f * (float)i));
 	for(int i = 0; i < POS_SETTINGS_RESERVED_NUM; ++i)
