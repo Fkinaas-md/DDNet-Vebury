@@ -2734,8 +2734,8 @@ void CMenus::RenderSettingsVebury(CUIRect MainView)
 		// Highlight selected players
 		if(m_aVeburySelected[aPlayerIDs[i]])
 		{
-			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(0.0f, 0.65f, 0.35f, 0.55f), CUI::CORNER_ALL, 8.0f);
-			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(0.0f, 0.9f, 0.45f, 0.35f), CUI::CORNER_ALL, 8.0f);
+			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.55f), CUI::CORNER_ALL, 8.0f);
+			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.35f), CUI::CORNER_ALL, 8.0f);
 		}
 
 		vec2 TeeRenderPos(TeeRect.x + TeeRect.w / 2.0f, TeeRect.y + TeeRect.h / 2.0f + OffsetToMid.y);
