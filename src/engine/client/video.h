@@ -76,7 +76,11 @@ private:
 	bool OpenVideo();
 	bool OpenAudio();
 	AVFrame *AllocPicture(enum AVPixelFormat PixFmt, int Width, int Height);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+	AVFrame *AllocAudioFrame(enum AVSampleFormat SampleFmt, const AVChannelLayout *pChannelLayout, int SampleRate, int NbSamples);
+#else
 	AVFrame *AllocAudioFrame(enum AVSampleFormat SampleFmt, uint64_t ChannelLayout, int SampleRate, int NbSamples);
+#endif
 
 	void WriteFrame(OutputStream *pStream, size_t ThreadIndex) REQUIRES(g_WriteLock);
 	void FinishFrames(OutputStream *pStream);

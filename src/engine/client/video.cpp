@@ -553,7 +553,11 @@ void CVideo::RunVideoThread(size_t ParentThreadIndex, size_t ThreadIndex)
 			{
 				std::unique_lock<std::mutex> LockVideo(pThreadData->m_VideoFillMutex);
 				lock_wait(g_WriteLock);
-				m_VideoStream.m_vpFrames[ThreadIndex]->pts = (int64_t)m_VideoStream.pEnc->frame_number;
+	#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+			m_VideoStream.m_vpFrames[ThreadIndex]->pts = (int64_t)m_VideoStream.pEnc->frame_num;
+#else
+			m_VideoStream.m_vpFrames[ThreadIndex]->pts = (int64_t)m_VideoStream.pEnc->frame_number;
+#endif
 				WriteFrame(&m_VideoStream, ThreadIndex);
 				lock_unlock(g_WriteLock);
 
@@ -608,7 +612,11 @@ AVFrame *CVideo::AllocPicture(enum AVPixelFormat PixFmt, int Width, int Height)
 	return pPicture;
 }
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+AVFrame *CVideo::AllocAudioFrame(enum AVSampleFormat SampleFmt, const AVChannelLayout *pChannelLayout, int SampleRate, int NbSamples)
+#else
 AVFrame *CVideo::AllocAudioFrame(enum AVSampleFormat SampleFmt, uint64_t ChannelLayout, int SampleRate, int NbSamples)
+#endif
 {
 	AVFrame *Frame = av_frame_alloc();
 	int Ret;
@@ -620,7 +628,11 @@ AVFrame *CVideo::AllocAudioFrame(enum AVSampleFormat SampleFmt, uint64_t Channel
 	}
 
 	Frame->format = SampleFmt;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+	av_channel_layout_copy(&Frame->ch_layout, pChannelLayout);
+#else
 	Frame->channel_layout = ChannelLayout;
+#endif
 	Frame->sample_rate = SampleRate;
 	Frame->nb_samples = NbSamples;
 
@@ -740,7 +752,11 @@ bool CVideo::OpenAudio()
 	for(size_t i = 0; i < m_AudioThreads; ++i)
 	{
 		m_AudioStream.m_vpFrames.emplace_back(nullptr);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+		m_AudioStream.m_vpFrames[i] = AllocAudioFrame(c->sample_fmt, &c->ch_layout, c->sample_rate, NbSamples);
+#else
 		m_AudioStream.m_vpFrames[i] = AllocAudioFrame(c->sample_fmt, c->channel_layout, c->sample_rate, NbSamples);
+#endif
 		if(!m_AudioStream.m_vpFrames[i])
 		{
 			dbg_msg("video_recorder", "Could not allocate audio frame");
@@ -748,7 +764,14 @@ bool CVideo::OpenAudio()
 		}
 
 		m_AudioStream.m_vpTmpFrames.emplace_back(nullptr);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+		{
+			AVChannelLayout StereoLayout = AV_CHANNEL_LAYOUT_STEREO;
+			m_AudioStream.m_vpTmpFrames[i] = AllocAudioFrame(AV_SAMPLE_FMT_S16, &StereoLayout, g_Config.m_SndRate, NbSamples);
+		}
+#else
 		m_AudioStream.m_vpTmpFrames[i] = AllocAudioFrame(AV_SAMPLE_FMT_S16, AV_CH_LAYOUT_STEREO, g_Config.m_SndRate, NbSamples);
+#endif
 		if(!m_AudioStream.m_vpTmpFrames[i])
 		{
 			dbg_msg("video_recorder", "Could not allocate audio frame");
@@ -777,10 +800,18 @@ bool CVideo::OpenAudio()
 		}
 
 		/* set options */
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+		{
+			AVChannelLayout in_layout = AV_CHANNEL_LAYOUT_STEREO;
+			av_opt_set_chlayout(m_AudioStream.m_vpSwrCtxs[i], "in_chlayout", &in_layout, 0);
+			av_opt_set_chlayout(m_AudioStream.m_vpSwrCtxs[i], "out_chlayout", &c->ch_layout, 0);
+		}
+#else
 		av_opt_set_int(m_AudioStream.m_vpSwrCtxs[i], "in_channel_count", 2, 0);
+		av_opt_set_int(m_AudioStream.m_vpSwrCtxs[i], "out_channel_count", c->channels, 0);
+#endif
 		av_opt_set_int(m_AudioStream.m_vpSwrCtxs[i], "in_sample_rate", g_Config.m_SndRate, 0);
 		av_opt_set_sample_fmt(m_AudioStream.m_vpSwrCtxs[i], "in_sample_fmt", AV_SAMPLE_FMT_S16, 0);
-		av_opt_set_int(m_AudioStream.m_vpSwrCtxs[i], "out_channel_count", c->channels, 0);
 		av_opt_set_int(m_AudioStream.m_vpSwrCtxs[i], "out_sample_rate", c->sample_rate, 0);
 		av_opt_set_sample_fmt(m_AudioStream.m_vpSwrCtxs[i], "out_sample_fmt", c->sample_fmt, 0);
 
@@ -848,8 +879,12 @@ bool CVideo::AddStream(OutputStream *pStream, AVFormatContext *pOC, const AVCode
 				}
 			}
 		}
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 0, 0)
+		av_channel_layout_default(&c->ch_layout, 2);
+#else
 		c->channels = 2;
 		c->channel_layout = AV_CH_LAYOUT_STEREO;
+#endif
 
 		pStream->pSt->time_base.num = 1;
 		pStream->pSt->time_base.den = c->sample_rate;
