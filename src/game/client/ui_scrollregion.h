@@ -107,10 +107,7 @@ private:
 	EScrollRelative m_ScrollDirection;
 	float m_ScrollSpeedMultiplier;
 
-	float m_AnimTimeMax;
-	float m_AnimTime;
-	float m_AnimInitScrollY;
-	float m_AnimTargetScrollY;
+
 
 	CUIRect m_ClipRect;
 	CUIRect m_RailRect;
@@ -140,7 +137,6 @@ public:
 	void DoEdgeScrolling();
 	bool RectClipped(const CUIRect &Rect) const;
 	bool ScrollbarShown() const;
-	bool Animating() const;
 	bool Active() const;
 	const CScrollRegionParams &Params() const { return m_Params; }
 };

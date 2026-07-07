@@ -21,6 +21,7 @@
 #include <game/client/render.h>
 #include <game/client/ui.h>
 #include <game/localization.h>
+#include <game/version.h>
 
 #include "base/system.h"
 #include "binds.h"
@@ -2675,241 +2676,295 @@ void CMenus::RenderSettingsHUD(CUIRect MainView)
 
 void CMenus::RenderSettingsVebury(CUIRect MainView)
 {
-	CUIRect Header, Body, Left, Right, Label, Button, Input, PlayerList, Details;
-	ColorRGBA BackgroundColor = ms_GuiColor;
-	BackgroundColor.a = 0.15f;
+	static int s_CurTab = 0;
+
+	CUIRect TabLabel1, TabLabel2, Body;
 	ColorRGBA AccentColor = ms_GuiColor;
 	AccentColor.a = 0.35f;
 
-	MainView.HSplitTop(35.0f, &Header, &Body);
-	RenderTools()->DrawUIRect(&MainView, BackgroundColor, CUI::CORNER_ALL, 15.0f);
-	RenderTools()->DrawUIRect(&Header, AccentColor, CUI::CORNER_T, 15.0f);
-	Header.VMargin(10.0f, &Header);
-	UI()->DoLabelScaled(&Header, "Vebury", 24.0f, TEXTALIGN_LEFT);
+	MainView.HSplitTop(20.0f, &TabLabel1, &Body);
+	TabLabel1.VSplitMid(&TabLabel1, &TabLabel2);
 
-	Body.Margin(10.0f, &Body);
-	Body.HSplitTop(30.0f, &Label, &Body);
-	UI()->DoLabelScaled(&Label, Localize("Select one or more players to kick/ban:"), 16.0f, TEXTALIGN_LEFT);
+	static int s_aPageTabs[2] = {};
+	if(DoButton_MenuTab((void *)&s_aPageTabs[0], Localize("Admin Panel"), s_CurTab == 0, &TabLabel1, 5, NULL, NULL, NULL, NULL, 4))
+		s_CurTab = 0;
+	if(DoButton_MenuTab((void *)&s_aPageTabs[1], Localize("Info"), s_CurTab == 1, &TabLabel2, 10, NULL, NULL, NULL, NULL, 4))
+		s_CurTab = 1;
 
 	Body.HSplitTop(10.0f, 0, &Body);
-	Body.VSplitMid(&Left, &Right);
 
-	// player list
-	Left.HSplitTop(18.0f, &Label, &Left);
-	UI()->DoLabelScaled(&Label, Localize("Players"), 18.0f, TEXTALIGN_LEFT);
-	Left.HSplitTop(10.0f, 0, &Left);
-	PlayerList = Left;
-
-	static int s_PlayerList = 0;
-	int NumPlayers = 0;
-	int aPlayerIDs[MAX_CLIENTS] = {0};
-	for(const auto *pInfo : m_pClient->m_Snap.m_paInfoByName)
+	if(s_CurTab == 0)
 	{
-		if(!pInfo)
-			continue;
-		if(pInfo->m_ClientID == m_pClient->m_Snap.m_LocalClientID)
-			continue;
-		aPlayerIDs[NumPlayers++] = pInfo->m_ClientID;
-	}
+		CUIRect Left, Right, Label, Button, Input, PlayerList, Details;
+		Body.HSplitTop(30.0f, &Label, &Body);
+		UI()->DoLabelScaled(&Label, Localize("Select one or more players to kick/ban:"), 16.0f, TEXTALIGN_LEFT);
 
-	CAnimState *pIdleState = CAnimState::GetIdle();
-	UiDoListboxStart(&s_PlayerList, &PlayerList, 40.0f, "", "", NumPlayers, 1, -1, m_VeburyScrollValue);
-	for(int i = 0; i < NumPlayers; i++)
-	{
-		CListboxItem Item = UiDoListboxNextItem(&aPlayerIDs[i], false, true, true);
-		if(!Item.m_Visible)
-			continue;
+		Body.HSplitTop(10.0f, 0, &Body);
+		Body.VSplitMid(&Left, &Right);
 
-		const char *pName = m_pClient->m_aClients[aPlayerIDs[i]].m_aName;
-		CTeeRenderInfo TeeInfo = m_pClient->m_aClients[aPlayerIDs[i]].m_RenderInfo;
-		float TeeSize = minimum(Item.m_Rect.h, 20.0f);
-		TeeInfo.m_Size = TeeSize * 2.0f;
-		vec2 OffsetToMid;
-		RenderTools()->GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeInfo, OffsetToMid);
+		Left.HSplitTop(18.0f, &Label, &Left);
+		UI()->DoLabelScaled(&Label, Localize("Players"), 18.0f, TEXTALIGN_LEFT);
+		Left.HSplitTop(10.0f, 0, &Left);
+		PlayerList = Left;
 
-		CUIRect TeeRect, NameRect;
-		Item.m_Rect.VSplitLeft(30.0f, &TeeRect, &NameRect);
-		TeeRect.VMargin(4.0f, &TeeRect);
-
-		// Highlight selected players
-		if(m_aVeburySelected[aPlayerIDs[i]])
+		static int s_PlayerList = 0;
+		int NumPlayers = 0;
+		int aPlayerIDs[MAX_CLIENTS] = {0};
+		for(const auto *pInfo : m_pClient->m_Snap.m_paInfoByName)
 		{
-			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.55f), CUI::CORNER_ALL, 8.0f);
-			RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.35f), CUI::CORNER_ALL, 8.0f);
+			if(!pInfo)
+				continue;
+			if(pInfo->m_ClientID == m_pClient->m_Snap.m_LocalClientID)
+				continue;
+			aPlayerIDs[NumPlayers++] = pInfo->m_ClientID;
 		}
 
-		vec2 TeeRenderPos(TeeRect.x + TeeRect.w / 2.0f, TeeRect.y + TeeRect.h / 2.0f + OffsetToMid.y);
-		RenderTools()->RenderTee(pIdleState, &TeeInfo, EMOTE_NORMAL, vec2(1, 0), TeeRenderPos);
-
-		UI()->DoLabelScaled(&NameRect, pName, 14.0f, TEXTALIGN_LEFT);
-	}
-
-	bool Activated = false;
-	int Selected = UiDoListboxEnd(&m_VeburyScrollValue, &Activated, 0);
-	if(Selected >= 0)
-	{
-		int ClientID = aPlayerIDs[Selected];
-		m_aVeburySelected[ClientID] = !m_aVeburySelected[ClientID];
-	}
-
-	int SelectedCount = 0;
-	for(int i = 0; i < NumPlayers; i++)
-	{
-		if(m_aVeburySelected[aPlayerIDs[i]])
-			SelectedCount++;
-	}
-
-	// details panel
-	Right.HSplitTop(18.0f, &Label, &Right);
-	UI()->DoLabelScaled(&Label, Localize("Actions"), 18.0f, TEXTALIGN_LEFT);
-	Right.HSplitTop(18.0f, &Label, &Right);
-	char aSelectionInfo[128];
-	str_format(aSelectionInfo, sizeof(aSelectionInfo), Localize("Selected: %d"), SelectedCount);
-	UI()->DoLabelScaled(&Label, aSelectionInfo, 14.0f, TEXTALIGN_LEFT);
-
-	if(m_aVeburyStatus[0])
-	{
-		Right.HSplitTop(18.0f, &Label, &Right);
-		TextRender()->TextColor(0.95f, 0.9f, 0.6f, 1.0f);
-		UI()->DoLabelScaled(&Label, m_aVeburyStatus, 14.0f, TEXTALIGN_LEFT);
-		TextRender()->TextColor(TextRender()->DefaultTextColor());
-	}
-
-	if(!Client()->RconAuthed())
-	{
-		Right.HSplitTop(18.0f, &Label, &Right);
-		TextRender()->TextColor(1.0f, 0.65f, 0.65f, 1.0f);
-		UI()->DoLabelScaled(&Label, Localize("RCON authorization required"), 14.0f, TEXTALIGN_LEFT);
-		TextRender()->TextColor(TextRender()->DefaultTextColor());
-	}
-
-	Right.HSplitTop(10.0f, 0, &Right);
-	Details = Right;
-
-	Details.HSplitTop(22.0f, &Input, &Details);
-	UI()->DoLabelScaled(&Input, Localize("Ban duration (minutes):"), 14.0f, TEXTALIGN_LEFT);
-	Details.HSplitTop(30.0f, &Button, &Details);
-	static float s_BanMinutesOffset = 0.0f;
-	UIEx()->DoEditBox(&s_BanMinutesOffset, &Button, m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), 14.0f, &s_BanMinutesOffset, false, CUI::CORNER_ALL);
-	int BanMinutes = str_toint(m_aVeburyBanMinutes);
-	if(BanMinutes < 0)
-		BanMinutes = 0;
-	if(BanMinutes > 999999)
-		BanMinutes = 999999;
-	if(UI()->ActiveItem() != &s_BanMinutesOffset)
-	{
-		if(m_aVeburyBanMinutes[0] == '\0')
+		CAnimState *pIdleState = CAnimState::GetIdle();
+		UiDoListboxStart(&s_PlayerList, &PlayerList, 40.0f, "", "", NumPlayers, 1, -1, m_VeburyScrollValue);
+		for(int i = 0; i < NumPlayers; i++)
 		{
-			m_VeburyBanMinutes = 0;
+			CListboxItem Item = UiDoListboxNextItem(&aPlayerIDs[i], false, true, true);
+			if(!Item.m_Visible)
+				continue;
+
+			const char *pName = m_pClient->m_aClients[aPlayerIDs[i]].m_aName;
+			CTeeRenderInfo TeeInfo = m_pClient->m_aClients[aPlayerIDs[i]].m_RenderInfo;
+			float TeeSize = minimum(Item.m_Rect.h, 20.0f);
+			TeeInfo.m_Size = TeeSize * 2.0f;
+			vec2 OffsetToMid;
+			RenderTools()->GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeInfo, OffsetToMid);
+
+			CUIRect TeeRect, NameRect;
+			Item.m_Rect.VSplitLeft(30.0f, &TeeRect, &NameRect);
+			TeeRect.VMargin(4.0f, &TeeRect);
+
+			if(m_aVeburySelected[aPlayerIDs[i]])
+			{
+				RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.55f), CUI::CORNER_ALL, 8.0f);
+				RenderTools()->DrawUIRect(&Item.m_Rect, ColorRGBA(AccentColor.r, AccentColor.g, AccentColor.b, 0.35f), CUI::CORNER_ALL, 8.0f);
+			}
+
+			vec2 TeeRenderPos(TeeRect.x + TeeRect.w / 2.0f, TeeRect.y + TeeRect.h / 2.0f + OffsetToMid.y);
+			RenderTools()->RenderTee(pIdleState, &TeeInfo, EMOTE_NORMAL, vec2(1, 0), TeeRenderPos);
+
+			UI()->DoLabelScaled(&NameRect, pName, 14.0f, TEXTALIGN_LEFT);
+		}
+
+		bool Activated = false;
+		int Selected = UiDoListboxEnd(&m_VeburyScrollValue, &Activated, 0);
+		if(Selected >= 0)
+		{
+			int ClientID = aPlayerIDs[Selected];
+			m_aVeburySelected[ClientID] = !m_aVeburySelected[ClientID];
+		}
+
+		int SelectedCount = 0;
+		for(int i = 0; i < NumPlayers; i++)
+		{
+			if(m_aVeburySelected[aPlayerIDs[i]])
+				SelectedCount++;
+		}
+
+		Right.HSplitTop(18.0f, &Label, &Right);
+		UI()->DoLabelScaled(&Label, Localize("Actions"), 18.0f, TEXTALIGN_LEFT);
+		Right.HSplitTop(18.0f, &Label, &Right);
+		char aSelectionInfo[128];
+		str_format(aSelectionInfo, sizeof(aSelectionInfo), Localize("Selected: %d"), SelectedCount);
+		UI()->DoLabelScaled(&Label, aSelectionInfo, 14.0f, TEXTALIGN_LEFT);
+
+		if(m_aVeburyStatus[0])
+		{
+			Right.HSplitTop(18.0f, &Label, &Right);
+			TextRender()->TextColor(0.95f, 0.9f, 0.6f, 1.0f);
+			UI()->DoLabelScaled(&Label, m_aVeburyStatus, 14.0f, TEXTALIGN_LEFT);
+			TextRender()->TextColor(TextRender()->DefaultTextColor());
+		}
+
+		if(!Client()->RconAuthed())
+		{
+			Right.HSplitTop(18.0f, &Label, &Right);
+			TextRender()->TextColor(1.0f, 0.3f, 0.3f, 1.0f);
+			UI()->DoLabelScaled(&Label, Localize("RCON authorization required"), 14.0f, TEXTALIGN_LEFT);
+			TextRender()->TextColor(TextRender()->DefaultTextColor());
+		}
+
+		Right.HSplitTop(10.0f, 0, &Right);
+		Details = Right;
+
+		Details.HSplitTop(22.0f, &Input, &Details);
+		UI()->DoLabelScaled(&Input, Localize("Ban duration (minutes):"), 14.0f, TEXTALIGN_LEFT);
+		Details.HSplitTop(30.0f, &Button, &Details);
+		static float s_BanMinutesOffset = 0.0f;
+		UIEx()->DoEditBox(&s_BanMinutesOffset, &Button, m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), 14.0f, &s_BanMinutesOffset, false, CUI::CORNER_ALL);
+		int BanMinutes = str_toint(m_aVeburyBanMinutes);
+		if(BanMinutes < 0)
+			BanMinutes = 0;
+		if(BanMinutes > 999999)
+			BanMinutes = 999999;
+		if(UI()->ActiveItem() != &s_BanMinutesOffset)
+		{
+			if(m_aVeburyBanMinutes[0] == '\0')
+			{
+				m_VeburyBanMinutes = 0;
+			}
+			else
+			{
+				str_format(m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), "%d", BanMinutes);
+				m_VeburyBanMinutes = BanMinutes;
+			}
 		}
 		else
 		{
-			str_format(m_aVeburyBanMinutes, sizeof(m_aVeburyBanMinutes), "%d", BanMinutes);
 			m_VeburyBanMinutes = BanMinutes;
+		}
+
+		Details.HSplitTop(10.0f, 0, &Details);
+		Details.HSplitTop(24.0f, &Label, &Details);
+		UI()->DoLabelScaled(&Label, Localize("Ban reason:"), 14.0f, TEXTALIGN_LEFT);
+		Details.HSplitTop(30.0f, &Button, &Details);
+		static float s_ReasonOffset = 0.0f;
+		UIEx()->DoEditBox(&s_ReasonOffset, &Button, m_aVeburyReason, sizeof(m_aVeburyReason), 14.0f, &s_ReasonOffset, false, CUI::CORNER_ALL);
+
+		static int s_KickButtonID = 0;
+		static int s_BanButtonID = 0;
+		static int s_ClearButtonID = 0;
+
+		Details.HSplitTop(10.0f, 0, &Details);
+		Details.HSplitTop(30.0f, &Button, &Details);
+		if(DoButton_Menu(&s_KickButtonID, Localize("Kick selected"), Client()->RconAuthed() ? 1 : 0, &Button))
+		{
+			if(!Client()->RconAuthed())
+			{
+				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("RCON is not authed."));
+				GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, "RCON is not authed, can't send kick command.");
+			}
+			else
+			{
+				int Sent = 0;
+				for(int i = 0; i < NumPlayers; i++)
+				{
+					int ClientID = aPlayerIDs[i];
+					if(m_aVeburySelected[ClientID])
+					{
+						char aCmd[256];
+						str_format(aCmd, sizeof(aCmd), "kick %d %s", ClientID, m_aVeburyReason[0] ? m_aVeburyReason : "");
+						Client()->Rcon(aCmd);
+						char aInfo[256];
+						str_format(aInfo, sizeof(aInfo), "Sent RCON: %s", aCmd);
+						GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, aInfo);
+						Sent++;
+					}
+				}
+				if(Sent > 0)
+				{
+					str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), Localize("Sent RCON kick to %d players."), Sent);
+				}
+				else
+				{
+					str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("No players selected."));
+				}
+			}
+		}
+
+		Details.HSplitTop(10.0f, 0, &Details);
+		Details.HSplitTop(30.0f, &Button, &Details);
+		if(DoButton_Menu(&s_BanButtonID, Localize("Ban selected"), Client()->RconAuthed() ? 1 : 0, &Button))
+		{
+			if(!Client()->RconAuthed())
+			{
+				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("RCON is not authed."));
+				GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, "RCON is not authed, can't send ban command.");
+			}
+			else
+			{
+				int Sent = 0;
+				for(int i = 0; i < NumPlayers; i++)
+				{
+					int ClientID = aPlayerIDs[i];
+					if(m_aVeburySelected[ClientID])
+					{
+						char aCmd[256];
+						str_format(aCmd, sizeof(aCmd), "ban %d %d %s", ClientID, m_VeburyBanMinutes, m_aVeburyReason[0] ? m_aVeburyReason : "");
+						Client()->Rcon(aCmd);
+						char aInfo[256];
+						str_format(aInfo, sizeof(aInfo), "Sent RCON: %s", aCmd);
+						GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, aInfo);
+						Sent++;
+					}
+				}
+				if(Sent > 0)
+				{
+					str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), Localize("Sent RCON ban to %d players."), Sent);
+				}
+				else
+				{
+					str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("No players selected."));
+				}
+			}
+		}
+
+		Details.HSplitTop(10.0f, 0, &Details);
+		Details.HSplitTop(30.0f, &Button, &Details);
+		if(DoButton_Menu(&s_ClearButtonID, Localize("Clear selection"), 0, &Button))
+		{
+			mem_zero(m_aVeburySelected, sizeof(m_aVeburySelected));
 		}
 	}
 	else
 	{
-		m_VeburyBanMinutes = BanMinutes;
-	}
-
-	Details.HSplitTop(10.0f, 0, &Details);
-	Details.HSplitTop(24.0f, &Label, &Details);
-	UI()->DoLabelScaled(&Label, Localize("Ban reason:"), 14.0f, TEXTALIGN_LEFT);
-	Details.HSplitTop(30.0f, &Button, &Details);
-	static float s_ReasonOffset = 0.0f;
-	UIEx()->DoEditBox(&s_ReasonOffset, &Button, m_aVeburyReason, sizeof(m_aVeburyReason), 14.0f, &s_ReasonOffset, false, CUI::CORNER_ALL);
-
-	static int s_KickButtonID = 0;
-	static int s_BanButtonID = 0;
-	static int s_ClearButtonID = 0;
-
-	Details.HSplitTop(10.0f, 0, &Details);
-	Details.HSplitTop(30.0f, &Button, &Details);
-	if(DoButton_Menu(&s_KickButtonID, Localize("Kick selected"), Client()->RconAuthed() ? 1 : 0, &Button))
-	{
-		if(!Client()->RconAuthed())
+		CUIRect Label, TeeRect;
+		Body.HSplitTop(5.0f, 0, &Body);
+		Body.HSplitTop(60.0f, &TeeRect, &Body);
+		CUIRect NameRect;
+		TeeRect.VSplitLeft(60.0f, &TeeRect, &NameRect);
+		CAnimState *pIdleState = CAnimState::GetIdle();
+		CTeeRenderInfo TeeInfo;
+		int SkinIndex = GameClient()->m_Skins.Find("greyfox");
+		if(SkinIndex >= 0)
 		{
-			str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("RCON is not authed."));
-			GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, "RCON is not authed, can't send kick command.");
+			const CSkin *pSkin = GameClient()->m_Skins.Get(SkinIndex);
+			TeeInfo.m_OriginalRenderSkin = pSkin->m_OriginalSkin;
+			TeeInfo.m_ColorableRenderSkin = pSkin->m_ColorableSkin;
+			TeeInfo.m_SkinMetrics = pSkin->m_Metrics;
+			TeeInfo.m_BloodColor = pSkin->m_BloodColor;
 		}
-		else
-		{
-			int Sent = 0;
-			for(int i = 0; i < NumPlayers; i++)
-			{
-				int ClientID = aPlayerIDs[i];
-				if(m_aVeburySelected[ClientID])
-				{
-					char aCmd[256];
-					str_format(aCmd, sizeof(aCmd), "kick %d %s", ClientID, m_aVeburyReason[0] ? m_aVeburyReason : "");
-					Client()->Rcon(aCmd);
-					char aInfo[256];
-					str_format(aInfo, sizeof(aInfo), "Sent RCON: %s", aCmd);
-					GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, aInfo);
-					Sent++;
-				}
-			}
-			if(Sent > 0)
-			{
-				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), Localize("Sent RCON kick to %d players."), Sent);
-			}
-			else
-			{
-				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("No players selected."));
-			}
-		}
-	}
+		TeeInfo.m_CustomColoredSkin = true;
+		TeeInfo.m_ColorBody = color_cast<ColorRGBA>(ColorHSLA(14186134).UnclampLighting());
+		TeeInfo.m_ColorFeet = color_cast<ColorRGBA>(ColorHSLA(0).UnclampLighting());
+		TeeInfo.m_Size = 64.0f;
+		vec2 OffsetToMid;
+		RenderTools()->GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeInfo, OffsetToMid);
+		vec2 TeeRenderPos(TeeRect.x + TeeRect.w / 2.0f, TeeRect.y + TeeRect.h / 2.0f + OffsetToMid.y);
 
-	Details.HSplitTop(10.0f, 0, &Details);
-	Details.HSplitTop(30.0f, &Button, &Details);
-	if(DoButton_Menu(&s_BanButtonID, Localize("Ban selected"), Client()->RconAuthed() ? 1 : 0, &Button))
-	{
-		if(!Client()->RconAuthed())
+		vec2 MouseScreenPos(m_MousePos.x, m_MousePos.y);
+		vec2 TeeDir = normalize(MouseScreenPos - TeeRenderPos);
+
+		RenderTools()->RenderTee(pIdleState, &TeeInfo, EMOTE_NORMAL, TeeDir, TeeRenderPos);
+		UI()->DoLabelScaled(&NameRect, "GNU", 18.0f, TEXTALIGN_LEFT);
+
+		Body.HSplitTop(30.0f, &Label, &Body);
+		UI()->DoLabelScaled(&Label, Localize("Contacts:"), 18.0f, TEXTALIGN_LEFT);
+
+		Body.HSplitTop(20.0f, &Label, &Body);
+		UI()->DoLabelScaled(&Label, "Discord: Fkinaas", 14.0f, TEXTALIGN_LEFT);
+
+		Body.HSplitTop(20.0f, &Label, &Body);
+		UI()->DoLabelScaled(&Label, "Telegram: @PkEsXz", 14.0f, TEXTALIGN_LEFT);
+
+		Body.HSplitTop(10.0f, 0, &Body);
+		float TextW = TextRender()->TextWidth(0, 14.0f, "Telegram: @PkEsXz", -1, -1.0f);
+		CUIRect RepoRect;
+		Body.HSplitTop(26.0f, &RepoRect, &Body);
+		RepoRect.w = TextW;
+		static int s_RepoButton = 0;
+		if(DoButton_Menu(&s_RepoButton, "GitHub", 0, &RepoRect, 0, CUI::CORNER_ALL, 5.0f, 0.0f, vec4(0.0f, 0.0f, 0.0f, 0.5f), vec4(0.0f, 0.0f, 0.0f, 0.25f)))
 		{
-			str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("RCON is not authed."));
-			GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, "RCON is not authed, can't send ban command.");
-		}
-		else
-		{
-			int Sent = 0;
-			for(int i = 0; i < NumPlayers; i++)
+			if(!open_link("https://github.com/Fkinaas-md/DDNet-Vebury"))
 			{
-				int ClientID = aPlayerIDs[i];
-				if(m_aVeburySelected[ClientID])
-				{
-					char aCmd[256];
-					str_format(aCmd, sizeof(aCmd), "ban %d %d %s", ClientID, m_VeburyBanMinutes, m_aVeburyReason[0] ? m_aVeburyReason : "");
-					Client()->Rcon(aCmd);
-					char aInfo[256];
-					str_format(aInfo, sizeof(aInfo), "Sent RCON: %s", aCmd);
-					GameClient()->m_GameConsole.PrintLine(CGameConsole::CONSOLETYPE_REMOTE, aInfo);
-					Sent++;
-				}
-			}
-			if(Sent > 0)
-			{
-				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), Localize("Sent RCON ban to %d players."), Sent);
-			}
-			else
-			{
-				str_format(m_aVeburyStatus, sizeof(m_aVeburyStatus), "%s", Localize("No players selected."));
+				dbg_msg("vebury", "couldn't open link");
 			}
 		}
 	}
-
-	Details.HSplitTop(10.0f, 0, &Details);
-	Details.HSplitTop(30.0f, &Button, &Details);
-	if(DoButton_Menu(&s_ClearButtonID, Localize("Clear selection"), 0, &Button))
-	{
-		mem_zero(m_aVeburySelected, sizeof(m_aVeburySelected));
-	}
-
-	Details.HSplitTop(10.0f, 0, &Details);
-	Details.HSplitTop(14.0f, &Label, &Details);
-	char aVersion[128];
-	str_format(aVersion, sizeof(aVersion), "%s", GameClient()->DDNetVersionStr());
-	UI()->DoLabelScaled(&Label, aVersion, 14.0f, TEXTALIGN_LEFT);
 }
 
 void CMenus::RenderSettingsDDNet(CUIRect MainView)

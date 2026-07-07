@@ -169,7 +169,7 @@ CListboxItem CListBox::DoNextItem(const void *pId, bool Selected, float CornerRa
 
 		Item.m_Rect.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, m_Active ? 0.5f : 0.33f), IGraphics::CORNER_ALL, CornerRadius);
 	}
-	if(Ui()->HotItem() == pId && !m_ScrollRegion.Animating())
+	if(Ui()->HotItem() == pId)
 	{
 		Item.m_Rect.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.33f), IGraphics::CORNER_ALL, CornerRadius);
 	}
