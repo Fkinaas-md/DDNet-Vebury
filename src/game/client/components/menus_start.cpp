@@ -30,6 +30,13 @@ void CMenus::RenderStartMenu(CUIRect MainView)
 	Graphics()->QuadsDrawTL(&QuadItem, 1);
 	Graphics()->QuadsEnd();
 
+	{
+		const char *pVeburyText = "DDNet-Vebury 1.0";
+		float FontSize = 12.0f;
+		float TextWidth = TextRender()->TextWidth(0, FontSize, pVeburyText, -1, -1.0f);
+		TextRender()->Text(0, MainView.x + MainView.w - 10.0f - TextWidth, MainView.y + 10.0f, FontSize, pVeburyText, -1.0f);
+	}
+
 	const float Rounding = 10.0f;
 	const float VMargin = MainView.w / 2 - 190.0f;
 
