@@ -2361,6 +2361,10 @@ void CMenus::OnWindowResize()
 
 void CMenus::OnRender()
 {
+	// Always keep resolving pending Vebury moderation actions, even if the settings
+	// menu gets closed right after a Ban/Kick/Mute click.
+	VeburyUpdatePendingAction();
+
 	if(Client()->State() != IClient::STATE_ONLINE && Client()->State() != IClient::STATE_DEMOPLAYBACK)
 		SetActive(true);
 

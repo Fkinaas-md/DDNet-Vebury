@@ -13,6 +13,7 @@
 #include <engine/friends.h>
 #include <engine/serverbrowser.h>
 #include <engine/shared/config.h>
+#include <engine/shared/protocol.h>
 #include <engine/textrender.h>
 
 #include <game/client/component.h>
@@ -258,6 +259,59 @@ protected:
 	CLineInputBuffered<64> m_FilterInput;
 	bool m_ControlPageOpening;
 
+	// for the Vebury mass moderation panel (menus_settings_vebury.cpp)
+	enum class EVeburyAction
+	{
+		BAN,
+		KICK,
+		MUTE,
+	};
+	struct SVeburyStatusInfo
+	{
+		char m_aIp[64] = "";
+		char m_aVersion[16] = "";
+		float m_LastUpdated = -1.0f;
+	};
+	struct SVeburyLogEntry
+	{
+		char m_aTimestamp[16];
+		char m_aAction[8];
+		char m_aName[MAX_NAME_LENGTH];
+		char m_aReason[VOTE_REASON_LENGTH];
+		char m_aDuration[24];
+		char m_aIp[64];
+		char m_aVersion[16];
+	};
+	struct SVeburyPendingEntry
+	{
+		int m_ClientId;
+		char m_aName[MAX_NAME_LENGTH];
+	};
+	struct SVeburyPendingAction
+	{
+		bool m_Active = false;
+		EVeburyAction m_Action = EVeburyAction::BAN;
+		char m_aReason[VOTE_REASON_LENGTH] = "";
+		int m_TimeValue = 0;
+		float m_QueuedTime = 0.0f;
+		std::vector<SVeburyPendingEntry> m_vEntries;
+	};
+	bool m_aVeburySelectedPlayers[MAX_CLIENTS] = {};
+	CLineInputBuffered<VOTE_REASON_LENGTH> m_VeburyReasonInput;
+	CLineInputBuffered<8> m_VeburyTimeInput;
+	SVeburyStatusInfo m_aVeburyStatusCache[MAX_CLIENTS];
+	std::vector<SVeburyLogEntry> m_vVeburyLog;
+	float m_VeburyLastStatusRequestTime = -1000.0f;
+	SVeburyPendingAction m_VeburyPendingAction;
+	void VeburyExecuteAction(EVeburyAction Action);
+	void VeburyRequestStatusIfDue();
+	void VeburyFlushPendingAction();
+
+public:
+	void OnVeburyRconLine(const char *pLine);
+	void VeburyUpdatePendingAction();
+
+protected:
 	// demo
 	enum
 	{
@@ -563,6 +617,11 @@ protected:
 	// found in menus_settings_assets.cpp
 	void RenderSettingsAssets(CUIRect MainView);
 
+	// found in menus_settings_vebury.cpp
+	void RenderSettingsVebury(CUIRect MainView);
+	void RenderVeburyAdminPanel(CUIRect MainView);
+	void RenderVeburyLog(CUIRect MainView);
+
 	// found in menus_settings_appearance.cpp
 	void RenderSettingsAppearance(CUIRect MainView);
 	void DoLaserPreview(const CUIRect *pRect, ColorHSLA OutlineColor, ColorHSLA InnerColor, int LaserType);
@@ -705,6 +764,7 @@ public:
 		SETTINGS_SOUND,
 		SETTINGS_DDNET,
 		SETTINGS_ASSETS,
+		SETTINGS_VEBURY,
 
 		SETTINGS_LENGTH,
 	};
