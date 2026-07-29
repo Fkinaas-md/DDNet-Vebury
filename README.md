@@ -55,7 +55,9 @@ To compile **DDNet-Vebury** yourself, use the following instructions depending o
 
 #### **Linux / macOS**
 Ensure you have installed the required dependencies, then execute:
-```sh
+```bash
+git clone https://github.com/fkinaas-md/DDNet-Vebury
+cd DDNet-Vebury
 cmake -Bbuild -GNinja
 cmake --build build
 ```
