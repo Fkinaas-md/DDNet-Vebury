@@ -10,6 +10,11 @@
 
 ---
 
+
+![Admin Panel](screenshots/admin_panel.png)
+
+![Log](screenshots/log.png)
+
 ### 🛠 Key Features
 
 #### 🛡️ 1. "Admin Panel" Tab
