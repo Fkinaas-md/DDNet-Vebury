@@ -11,7 +11,7 @@
 ---
 
 
-![Admin Panel](https://github.com/Fkinaas-md/DDNet-Vebury/blob/master/screenshots/Admin_panel.png)
+![Admin Panel](https://github.com/Fkinaas-md/DDNet-Vebury/blob/master/screenshots/admin.png)
 
 ![Log](https://github.com/Fkinaas-md/DDNet-Vebury/blob/master/screenshots/Log.png)
 
