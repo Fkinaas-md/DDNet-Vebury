@@ -11,9 +11,9 @@
 ---
 
 
-![Admin Panel](screenshots/admin_panel.png)
+![Admin Panel](https://github.com/Fkinaas-md/DDNet-Vebury/blob/master/screenshots/Admin_panel.png)
 
-![Log](screenshots/log.png)
+![Log](https://github.com/Fkinaas-md/DDNet-Vebury/blob/master/screenshots/Log.png)
 
 ### 🛠 Key Features
 
