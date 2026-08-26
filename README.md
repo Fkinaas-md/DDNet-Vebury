@@ -67,7 +67,7 @@ doas apk add \
     base-devel cmake ninja git libcurl-devel sdl2-devel \
     freetype-devel glew-devel libpng-devel wavpack-devel opus-devel opusfile-devel \
     sqlite-devel openssl-devel vulkan-loader-devel vulkan-headers glslang libnotify-devel \
-    glib-devel rust cargo glslang-progs pkgconf
+    glib-devel rust cargo glslang-progs pkgconf ffmpeg ffmpeg-devel
 ```
 
 
