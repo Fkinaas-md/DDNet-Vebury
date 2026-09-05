@@ -69,5 +69,15 @@ doas apk add \
     sqlite-devel openssl-devel vulkan-loader-devel vulkan-headers glslang libnotify-devel \
     glib-devel rust cargo glslang-progs pkgconf ffmpeg ffmpeg-devel
 ```
+OpenSUSE Tumbleweed dependencies
+```bash
+
+sudo zypper install \
+  pattern:devel_basis cmake ninja git libcurl-devel "pkgconfig(sdl2)" \
+  freetype2-devel glew-devel libpng16-devel wavpack-devel libopus-devel \
+  sqlite3-devel libopenssl-devel vulkan-devel Mesa-libGLESv3-devel \
+  glib2-devel rust cargo glslang-devel pkgconf "pkgconfig(libavcodec)" \
+  libavformat-devel libswscale-devel libavcodec-devel libavutil-devel
+```
 
 
