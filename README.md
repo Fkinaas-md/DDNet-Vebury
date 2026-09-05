@@ -61,6 +61,12 @@ cd DDNet-Vebury
 cmake -Bbuild -GNinja
 cmake --build build
 ```
+for debian,ubuntu,fedora,etc...
+
+https://github.com/ddnet/ddnet#cloning
+
+for other distributions : 
+ 
 Chimera Linux dependencies
 ```bash
 doas apk add \
